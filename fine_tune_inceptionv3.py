@@ -34,34 +34,35 @@ def create_model(ing_num,classes):
     for layer in base_model.layers:
         layer.trainable = False
     return model
+def read():
+    f = open("/home/hduser/shuffled.txt",'r')
+    images=[]
+    ingres=[]
+    classes=[]
+    count=0
+    for line in f:
+        path,ingre=line.split(" ",1)
+        classname=path.split("/")[1]
+        ingre=np.fromstring(ingre, dtype=int, sep=' ')
+        image=cv2.imread("/home/hduser/Vireo"+path)
+        image = cv2.resize(image, (256, 256))
+        count+=1
+        if classname=='172':
+            classname=='0'
+        images.append(image)
+        ingres.append(ingre)
+        classes.append(classname)
+        if count%1200==0:
+            break
+    images=np.array(images)
+    classes=np.array(classes)
+    y_train = keras.utils.to_categorical(classes,172)
+    ingres=np.array(ingres)
+    print(ingres.shape)
+    return images,y_train,ingres
 
-f = open("/home/student/shuffled.txt",'r')
-images=[]
-ingres=[]
-classes=[]
-count=0
-for line in f:
-    path,ingre=line.split(" ",1)
-    classname=path.split("/")[1]
-    ingre=np.fromstring(ingre, dtype=int, sep=' ')
-    image=cv2.imread("/home/student/VireoFood172"+path)
-    print(image)
-    print("/home/student/VireoFood172"+path)
-    image = cv2.resize(image, (256, 256))
-#    if classname=='3':
- #       classname='0'
-    count+=1
-    images.append(image)
-    ingres.append(ingre)
-    classes.append(classname)
-images=np.array(images)
-classes=np.array(classes)
-y_train = keras.utils.to_categorical(classes,172)
-ingres=np.array(ingres)
-print("=------------------------------------------shape------------------------------")
-print("count",count)
+images,y_train,ingres=read()
 
-print("=------------------------------------------shape------------------------------")
 
 model_path="model.h5"
 model=create_model(353,172)
