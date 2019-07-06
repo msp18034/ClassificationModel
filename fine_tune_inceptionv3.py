@@ -35,29 +35,36 @@ def create_model(ing_num,classes):
         layer.trainable = False
     return model
 
-f = open("3Classs.txt",'r')
+f = open("/home/student/shuffled.txt",'r')
 images=[]
 ingres=[]
 classes=[]
+count=0
 for line in f:
     path,ingre=line.split(" ",1)
     classname=path.split("/")[1]
     ingre=np.fromstring(ingre, dtype=int, sep=' ')
-    image=cv2.imread("image"+path)
-#     image = cv2.resize(image, (224, 224))
-    if classname=='3':
-        classname='0'
+    image=cv2.imread("/home/student/VireoFood172"+path)
+    print(image)
+    print("/home/student/VireoFood172"+path)
+    image = cv2.resize(image, (256, 256))
+#    if classname=='3':
+ #       classname='0'
+    count+=1
     images.append(image)
     ingres.append(ingre)
     classes.append(classname)
 images=np.array(images)
 classes=np.array(classes)
-y_train = keras.utils.to_categorical(classes, 3)
-
+y_train = keras.utils.to_categorical(classes,172)
 ingres=np.array(ingres)
+print("=------------------------------------------shape------------------------------")
+print("count",count)
+
+print("=------------------------------------------shape------------------------------")
 
 model_path="model.h5"
-model=create_model(353,3)
+model=create_model(353,172)
 model.compile(
             loss={
                 'ingredients': 'binary_crossentropy',
@@ -71,6 +78,6 @@ model.compile(
             optimizer=SGD(lr=1e-4, decay=1e-6, momentum=0.9, nesterov=True),
             metrics=['accuracy'])
 #model.fit(images,classes, batch_size=32,epochs=10)
-history=model.fit(images,[ingres,y_train], batch_size=32,shuffle=True,validation_split=0.1,epochs=100)
+history=model.fit(images,[ingres,y_train], batch_size=32,validation_split=0.1,epochs=100)
 
 model.save(model_path)
