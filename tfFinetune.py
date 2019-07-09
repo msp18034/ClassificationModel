@@ -73,24 +73,23 @@ def _parse_record(bytestr):
 
 def parse_data(record):
     keys_to_features = {
-        "image": tf.FixedLenFeature((), tf.int64, default_value=tf.zeros([], dtype=tf.int64)),
-        "label": tf.FixedLenFeature((), tf.int64, default_value=tf.zeros([], dtype=tf.int64)),
-        "ingres": tf.FixedLenFeature((), tf.int64,
-                                    default_value=tf.zeros([], dtype=tf.int64)),
+        "image":tf.FixedLenFeature(shape=[],dtype=tf.string),
+        "label":tf.FixedLenFeature(shape=[],dtype=tf.string),
+        "ingres": tf.FixedLenFeature(shape=[],dtype=tf.string),
     }
     parsed = tf.parse_single_example(record, keys_to_features)
 
     # Parse the string into an array of pixels corresponding to the image
-    images = tf.cast(parsed["image"],tf.uint8)
-    print(images)
-    images = tf.reshape(images,[256,256,3])
+    images=tf.reshape(tf.decode_raw(parsed['image'],tf.float32),shape=(256,256,3))
+   # images=np.array(images)
     labels = tf.cast(parsed['label'], tf.int32)
-    labels = tf.one_hot(labels,172)
+#    labels = tf.one_hot(labels,172)
     ingres = tf.cast(parsed['ingres'], tf.int32)
-    return images,labels,ingres
+    return (images,labels,ingres)
 dataset=tf.data.TFRecordDataset(filenames="shuffled.tfrecord")
 ds_train=dataset.map(parse_data)
-
+ds_train=ds_train.shuffle(buffer_size=256)
+images,labels,ingres=dataset.make_one_shot_iterator().get_next()
 
 model_path="model.h5"
 model=create_model(353,172)
@@ -107,6 +106,6 @@ model.compile(
             optimizer=SGD(lr=1e-4, decay=1e-6, momentum=0.9, nesterov=True),
             metrics=['accuracy'])
 #model.fit(images,classes, batch_size=32,epochs=10)
-history=model.fit(ds_train, batch_size=32,validation_split=0.1,epochs=100)
+history=model.fit(images,[labels,ingres], steps_per_epoch=100,batch_size=32,validation_split=0.1,epochs=100)
 
 model.save(model_path)
