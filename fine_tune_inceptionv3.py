@@ -12,11 +12,14 @@ import numpy as np
 import argparse
 import math
 from PIL import Image
+from keras.preprocessing.image import ImageDataGenerator
+import pandas as pd
 #parser = argparse.ArgumentParser(description='Process some integers.')
 #parser.add_argument('count', type=int,
                     #help='an integer for the accumulator')
 
 #args = parser.parse_args()
+
 def read_img(path, target_size):
     try:
         img = Image.open(path).convert("RGB")
@@ -84,7 +87,8 @@ def create_model(ing_num,classes):
 
 def my_gen(path,nbclass, batch_size, target_size):
     img_list =getList(path)
-    steps = math.ceil(len(img_list) / batch_size)
+    steps=1
+   # steps = math.ceil(len(img_list) / batch_size)
     print("Found %s images."%len(img_list))
     while True:
         for i in range(steps):
@@ -99,18 +103,58 @@ def my_gen(path,nbclass, batch_size, target_size):
             
             ingres = [ parse_ingres(line) for line in batch_list]
             batch_ingres= np.concatenate([array for array in ingres])            
-            yield batch_x,[batch_ingres,batch_y]
+            yield batch_x,batch_ingres,batch_y
 
-#images,y_train,ingres=read()
+image_gen=ImageDataGenerator(rescale=1./255,featurewise_center=True,rotation_range=40,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    fill_mode='nearest')
+
+def create_aug_gen(in_gen):
+    for in_x,batch_ingres,in_y in in_gen:
+        #print("image before---------------",in_x[0])
+        a = image_gen.flow(in_x,in_y,batch_size = in_x.shape[0],shuffle=False) 
+        x,y=next(a)
+        #print("image after ---------------",x[0])
+        yield x,[batch_ingres,y]
+
+
+def create_val_df(filePath):
+    paths=[]
+    labels=[]
+    with open(filePath, 'r') as infile:
+        for line in infile:
+            path,ingre=line.split(" ",1)
+            label=path.split("/")[1]
+            paths.append(path)
+            labels.append(label)
+    diction={'paths':paths,'labels':labels}
+    return pd.DataFrame(diction)
 train_path="train.txt"
 val_path="val.txt"
-batch_size=64
+batch_size=12
 nbclass=173
 steps=math.ceil(len(getList(train_path)) / batch_size)
 val_steps=math.ceil(len(getList(val_path)) / batch_size)
-target_size = (224, 224)
-train_gen = my_gen(train_path,173, batch_size, target_size)
-val_gen=my_gen(val_path,173,batch_size,target_size)
+target_size = (256,256)
+
+image_gen=ImageDataGenerator(rescale=1./255,featurewise_center=True,rotation_range=40,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    fill_mode='nearest')
+train_gen =create_aug_gen(my_gen(train_path,173, batch_size, target_size))
+
+valid_df=create_val_df("val.txt")
+
+valid_gen=ImageDataGenerator(rescale=1./255,featurewise_center=True)
+val_gen=valid_gen.flow_from_dataframe(dataframe=valid_df,dictionary="/home/student/VireoFood172",x_col="paths",y_col="labels",class_mode="categorical", target_size=(256,256),batch_size=32)
+
 model_path="model.h5"
 model=create_model(353,nbclass)
 model.compile(
@@ -119,15 +163,14 @@ model.compile(
                 'predictions': 'categorical_crossentropy'
                   },
             loss_weights={
-                'ingredients': 2.,
-                'predictions': 4
+                'ingredients': 1.,
+                'predictions': 2.
                 },
             #optimizer='adam',
             optimizer=SGD(lr=1e-4, decay=1e-6, momentum=0.9, nesterov=True),
             metrics=['accuracy'])
 #model.fit(images,classes, batch_size=32,epochs=10)
 #history=model.fit(images,[ingres,y_train], batch_size=32,validation_split=0.1,epochs=100)
-model.fit_generator(generator=train_gen, steps_per_epoch=steps, epochs=75, verbose=1,validation_data=val_gen,validation_steps=200,
-                    use_multiprocessing=True, workers=1)
+model.fit_generator(generator=train_gen, steps_per_epoch=steps, epochs=75, verbose=1,validation_data=val_gen,validation_steps=val_steps,use_multiprocessing=True, workers=1)
 
 model.save(model_path)

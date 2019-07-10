@@ -52,7 +52,7 @@ def parse_label(line):
     path,ingre=line.split(" ",1)
     classname=path.split("/")[1]
     ingre=np.fromstring(ingre, dtype=int, sep=' ')
-    return path,classname
+    return  "/home/student/VireoFood172"+path,classname
 
 def parse_ingres(line):
     '''
@@ -119,11 +119,13 @@ def my_gen(path, batch_size, target_size):
 
 
 datagen=ImageDataGenerator(rescale=1./255)
-df=createDataframe("val.txt")
-train_gen=datagen.flow_from_dataframe(dataframe=df,dictionary="VireoFood172",x_col="paths",y_col="labels",class_mode="categorical", target_size=(256,256),batch_size=32)
+
+df=createDataframe("/home/student/backup/train.txt")
+print(df)
+train_gen=datagen.flow_from_dataframe(dataframe=df,dictionary="/home/student/VireoFood172",x_col="paths",y_col="labels",class_mode="categorical", target_size=(256,256),batch_size=32)
 
 model_path="model.h5"
-model=create_model(353,8)
+model=create_model(353,172)
 model.compile(
             loss={
                 #'ingredients': 'binary_crossentropy',
