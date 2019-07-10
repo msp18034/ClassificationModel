@@ -40,7 +40,7 @@ def parse_path(line):
     '''
     Given a line from the training/test txt file, return parsed info.'''
     path,ingre=line.split(" ",1)
-    return "/home/student/VireoFood172"+path
+    return "VireoFood172"+path
 
 def parse_label(line):
     '''
@@ -64,9 +64,9 @@ def create_model(ing_num,classes):
     x = base_model.output
     x = GlobalAveragePooling2D()(x)
     x = Dense(4096, activation='relu', name="fc1")(x)
-    x = Dropout(0.3)(x)
+    x = Dropout(0.5)(x)
     ingredients = Dense(2048, activation='relu', name="fc2")(x)
-    ingredients = Dropout(0.3)(ingredients)
+    ingredients = Dropout(0.5)(ingredients)
     ingredients = Dense(ing_num, activation='sigmoid', name="ingredients")(ingredients)
 
     #merged_vector = keras.layers.concatenate([x, ingredients], axis=-1)
@@ -102,11 +102,12 @@ def my_gen(path,nbclass, batch_size, target_size):
             yield batch_x,[batch_ingres,batch_y]
 
 #images,y_train,ingres=read()
-train_path="/home/student/backup/train.txt"
-val_path="/home/student/backup/val.txt"
+train_path="train.txt"
+val_path="val.txt"
 batch_size=64
 nbclass=173
 steps=math.ceil(len(getList(train_path)) / batch_size)
+val_steps=math.ceil(len(getList(val_path)) / batch_size)
 target_size = (224, 224)
 train_gen = my_gen(train_path,173, batch_size, target_size)
 val_gen=my_gen(val_path,173,batch_size,target_size)
@@ -118,15 +119,15 @@ model.compile(
                 'predictions': 'categorical_crossentropy'
                   },
             loss_weights={
-                'ingredients': 1.,
-                'predictions': 2
+                'ingredients': 2.,
+                'predictions': 4
                 },
             #optimizer='adam',
             optimizer=SGD(lr=1e-4, decay=1e-6, momentum=0.9, nesterov=True),
             metrics=['accuracy'])
 #model.fit(images,classes, batch_size=32,epochs=10)
 #history=model.fit(images,[ingres,y_train], batch_size=32,validation_split=0.1,epochs=100)
-model.fit_generator(generator=train_gen, steps_per_epoch=steps, epochs=10, verbose=1,validation_data=val_gen,validation_steps=200,
+model.fit_generator(generator=train_gen, steps_per_epoch=steps, epochs=75, verbose=1,validation_data=val_gen,validation_steps=200,
                     use_multiprocessing=True, workers=1)
 
 model.save(model_path)
