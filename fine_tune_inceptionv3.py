@@ -14,11 +14,11 @@ import math
 from PIL import Image
 from keras.preprocessing.image import ImageDataGenerator
 import pandas as pd
-#parser = argparse.ArgumentParser(description='Process some integers.')
-#parser.add_argument('count', type=int,
-                    #help='an integer for the accumulator')
+parser = argparse.ArgumentParser(description='Process some integers.')
+parser.add_argument('--epoch', type=int,
+                    help='set input ecpoch')
 
-#args = parser.parse_args()
+args = parser.parse_args()
 
 def read_img(path, target_size):
     try:
@@ -68,12 +68,12 @@ def create_model(ing_num,classes):
     x = GlobalAveragePooling2D()(x)
     x = Dense(4096, activation='relu', name="fc1")(x)
     x = Dropout(0.5)(x)
-    ingredients = Dense(2048, activation='relu', name="fc2")(x)
+    ingredients = Dense(1024, activation='relu', name="fc2")(x)
     ingredients = Dropout(0.5)(ingredients)
     ingredients = Dense(ing_num, activation='sigmoid', name="ingredients")(ingredients)
 
     #merged_vector = keras.layers.concatenate([x, ingredients], axis=-1)
-    predictions = Dense(2048, activation='relu', name="fc3")(x)
+    predictions = Dense(1024, activation='relu', name="fc3")(x)
     predictions = Dropout(0.5)(predictions)
     predictions = Dense(classes, activation='softmax', name="predictions")(predictions)
 
@@ -113,47 +113,55 @@ image_gen=ImageDataGenerator(rescale=1./255,featurewise_center=True,rotation_ran
     horizontal_flip=True,
     fill_mode='nearest')
 
-def create_aug_gen(in_gen):
+def create_aug_gen(in_gen,mode):
+    if(mode=="train"):
+        for in_x,batch_ingres,in_y in in_gen:
+            #print("image before---------------",in_x[0])
+            a = image_gen.flow(in_x,in_y,batch_size = in_x.shape[0],shuffle=False) 
+            x,y=next(a)
+            #print("image after ---------------",x[0])
+            yield x,[batch_ingres,y]
+    else:
+        for in_x,batch_ingres,in_y in in_gen:
+            a = valid_gen.flow(in_x,in_y,batch_size = in_x.shape[0],shuffle=False)
+            x,y=next(a)
+            #print("image after ---------------",x[0])
+            yield x,[batch_ingres,y]
+
+
+def create_val_gen(in_gen):
     for in_x,batch_ingres,in_y in in_gen:
-        #print("image before---------------",in_x[0])
-        a = image_gen.flow(in_x,in_y,batch_size = in_x.shape[0],shuffle=False) 
+        a = valid_gen.flow(in_x,in_y,batch_size = in_x.shape[0],shuffle=False)
         x,y=next(a)
         #print("image after ---------------",x[0])
         yield x,[batch_ingres,y]
 
 
-def create_val_df(filePath):
-    paths=[]
-    labels=[]
-    with open(filePath, 'r') as infile:
-        for line in infile:
-            path,ingre=line.split(" ",1)
-            label=path.split("/")[1]
-            paths.append(path)
-            labels.append(label)
-    diction={'paths':paths,'labels':labels}
-    return pd.DataFrame(diction)
 train_path="train.txt"
 val_path="val.txt"
-batch_size=12
+batch_size=64
 nbclass=173
 steps=math.ceil(len(getList(train_path)) / batch_size)
 val_steps=math.ceil(len(getList(val_path)) / batch_size)
 target_size = (256,256)
 
-image_gen=ImageDataGenerator(rescale=1./255,featurewise_center=True,rotation_range=40,
+image_gen=ImageDataGenerator(rescale=1./255,
+    featurewise_center=True,
+    rotation_range=40,
     width_shift_range=0.2,
     height_shift_range=0.2,
     shear_range=0.2,
     zoom_range=0.2,
     horizontal_flip=True,
     fill_mode='nearest')
-train_gen =create_aug_gen(my_gen(train_path,173, batch_size, target_size))
 
-valid_df=create_val_df("val.txt")
+valid_gen=ImageDataGenerator(rescale=1./255)
 
-valid_gen=ImageDataGenerator(rescale=1./255,featurewise_center=True)
-val_gen=valid_gen.flow_from_dataframe(dataframe=valid_df,dictionary="/home/student/VireoFood172",x_col="paths",y_col="labels",class_mode="categorical", target_size=(256,256),batch_size=32)
+train_gen =create_aug_gen(my_gen(train_path,173, batch_size, target_size),"train")
+
+val_gen=create_aug_gen(my_gen(val_path,173, batch_size, target_size),"val")
+
+
 
 model_path="model.h5"
 model=create_model(353,nbclass)
@@ -169,8 +177,7 @@ model.compile(
             #optimizer='adam',
             optimizer=SGD(lr=1e-4, decay=1e-6, momentum=0.9, nesterov=True),
             metrics=['accuracy'])
-#model.fit(images,classes, batch_size=32,epochs=10)
-#history=model.fit(images,[ingres,y_train], batch_size=32,validation_split=0.1,epochs=100)
-model.fit_generator(generator=train_gen, steps_per_epoch=steps, epochs=75, verbose=1,validation_data=val_gen,validation_steps=val_steps,use_multiprocessing=True, workers=1)
+model.fit_generator(generator=train_gen, steps_per_epoch=200, epochs=args.epoch, verbose=1,validation_data=val_gen,validation_steps=50,use_multiprocessing=True, workers=1)
+#model.fit_generator(generator=train_gen, steps_per_epoch=1, epochs=args.epoch, verbose=1,validation_data=val_gen,validation_steps=1,use_multiprocessing=True, workers=1)
 
 model.save(model_path)
