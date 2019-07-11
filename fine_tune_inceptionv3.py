@@ -17,6 +17,8 @@ import pandas as pd
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--epoch', type=int,
                     help='set input ecpoch')
+parser.add_argument('--reload', type=int,
+                    help='set input ecpoch')
 
 args = parser.parse_args()
 
@@ -105,13 +107,6 @@ def my_gen(path,nbclass, batch_size, target_size):
             batch_ingres= np.concatenate([array for array in ingres])            
             yield batch_x,batch_ingres,batch_y
 
-image_gen=ImageDataGenerator(rescale=1./255,featurewise_center=True,rotation_range=40,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
-    shear_range=0.2,
-    zoom_range=0.2,
-    horizontal_flip=True,
-    fill_mode='nearest')
 
 def create_aug_gen(in_gen,mode):
     if(mode=="train"):
@@ -129,24 +124,17 @@ def create_aug_gen(in_gen,mode):
             yield x,[batch_ingres,y]
 
 
-def create_val_gen(in_gen):
-    for in_x,batch_ingres,in_y in in_gen:
-        a = valid_gen.flow(in_x,in_y,batch_size = in_x.shape[0],shuffle=False)
-        x,y=next(a)
-        #print("image after ---------------",x[0])
-        yield x,[batch_ingres,y]
 
 
 train_path="train.txt"
 val_path="val.txt"
-batch_size=64
+batch_size=256
 nbclass=173
 steps=math.ceil(len(getList(train_path)) / batch_size)
 val_steps=math.ceil(len(getList(val_path)) / batch_size)
 target_size = (256,256)
 
 image_gen=ImageDataGenerator(rescale=1./255,
-    featurewise_center=True,
     rotation_range=40,
     width_shift_range=0.2,
     height_shift_range=0.2,
@@ -161,11 +149,12 @@ train_gen =create_aug_gen(my_gen(train_path,173, batch_size, target_size),"train
 
 val_gen=create_aug_gen(my_gen(val_path,173, batch_size, target_size),"val")
 
-
-
 model_path="model.h5"
-model=create_model(353,nbclass)
-model.compile(
+
+if args.reload==0:
+    model_path="model.h5"
+    model=create_model(353,nbclass)
+    model.compile(
             loss={
                 'ingredients': 'binary_crossentropy',
                 'predictions': 'categorical_crossentropy'
@@ -177,7 +166,10 @@ model.compile(
             #optimizer='adam',
             optimizer=SGD(lr=1e-4, decay=1e-6, momentum=0.9, nesterov=True),
             metrics=['accuracy'])
-model.fit_generator(generator=train_gen, steps_per_epoch=200, epochs=args.epoch, verbose=1,validation_data=val_gen,validation_steps=50,use_multiprocessing=True, workers=1)
+else:
+    model=keras.models.load_model("model.h5")
+
+model.fit_generator(generator=train_gen, steps_per_epoch=50, epochs=args.epoch, verbose=1,validation_data=val_gen,validation_steps=50,use_multiprocessing=True, workers=1)
 #model.fit_generator(generator=train_gen, steps_per_epoch=1, epochs=args.epoch, verbose=1,validation_data=val_gen,validation_steps=1,use_multiprocessing=True, workers=1)
 
 model.save(model_path)
