@@ -136,7 +136,7 @@ def create_aug_gen(in_gen,mode):
 
 train_path="train.txt"
 val_path="val.txt"
-batch_size=256
+batch_size=128
 nbclass=173
 steps=math.ceil(len(getList(train_path)) / batch_size)
 val_steps=math.ceil(len(getList(val_path)) / batch_size)
@@ -171,13 +171,15 @@ if args.reload==0:
                 'ingredients': 1.,
                 'predictions': 2.
                 },
-            #optimizer='adam',
-            optimizer=SGD(lr=1e-4, decay=1e-6, momentum=0.9, nesterov=True),
+            optimizer='adam',
+            #ptimizer=SGD(lr=1e-4, decay=1e-6, momentum=0.9, nesterov=True),
             metrics=['accuracy'])
 else:
     model=keras.models.load_model("model.h5")
 
-model.fit_generator(generator=train_gen, steps_per_epoch=50, epochs=args.epoch, verbose=1,validation_data=val_gen,validation_steps=5,use_multiprocessing=False, workers=0)
+history=model.fit_generator(generator=train_gen, steps_per_epoch=steps, epochs=args.epoch, verbose=1,validation_data=val_gen,validation_steps=50,use_multiprocessing=True, workers=1)
 #model.fit_generator(generator=train_gen, steps_per_epoch=1, epochs=args.epoch, verbose=1,validation_data=val_gen,validation_steps=1,use_multiprocessing=True, workers=1)
+with open('trainHistoryDict', 'wb') as file_pi:
+    pickle.dump(history.history, file_pi)
 
 model.save(model_path)

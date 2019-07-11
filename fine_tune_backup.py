@@ -12,11 +12,14 @@ import numpy as np
 import argparse
 import math
 from PIL import Image
-#parser = argparse.ArgumentParser(description='Process some integers.')
-#parser.add_argument('count', type=int,
-                    #help='an integer for the accumulator')
+parser = argparse.ArgumentParser(description='Process some integers.')
+parser.add_argument('--epoch', type=int,
+                    help='set input ecpoch')
+parser.add_argument('--reload', type=int,
+                    help='set input ecpoch')
 
-#args = parser.parse_args()
+args = parser.parse_args()
+
 def read_img(path, target_size):
     try:
         img = Image.open(path).convert("RGB")
@@ -113,20 +116,25 @@ train_gen = my_gen(train_path,173, batch_size, target_size)
 val_gen=my_gen(val_path,173,batch_size,target_size)
 model_path="model.h5"
 model=create_model(353,nbclass)
-model.compile(
+
+if args.reload==0:
+    model_path="model.h5"
+    model=create_model(353,nbclass)
+    model.compile(
             loss={
                 'ingredients': 'binary_crossentropy',
                 'predictions': 'categorical_crossentropy'
                   },
             loss_weights={
-                'ingredients': 2.,
-                'predictions': 4
+                'ingredients': 1.,
+                'predictions': 2.
                 },
             #optimizer='adam',
             optimizer=SGD(lr=1e-4, decay=1e-6, momentum=0.9, nesterov=True),
             metrics=['accuracy'])
-#model.fit(images,classes, batch_size=32,epochs=10)
-#history=model.fit(images,[ingres,y_train], batch_size=32,validation_split=0.1,epochs=100)
+else:
+    model=keras.models.load_model("model.h5")
+
 model.fit_generator(generator=train_gen, steps_per_epoch=200, epochs=5, verbose=1,validation_data=val_gen,validation_steps=20,
                     use_multiprocessing=True, workers=1)
 
