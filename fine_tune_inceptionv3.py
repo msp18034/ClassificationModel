@@ -87,7 +87,7 @@ def create_model(ing_num,classes):
     return model
 
 
-def my_gen(path,nbclass, batch_size, target_size):
+def my_gen(path,nbclass, batch_size, target_size,mode):
     img_list =getList(path)
     steps=1
    # steps = math.ceil(len(img_list) / batch_size)
@@ -99,13 +99,21 @@ def my_gen(path,nbclass, batch_size, target_size):
             x=[parse_path(line) for line in batch_list]
             x = [read_img(file, target_size) for file in x]
             batch_x = np.concatenate([array for array in x])
-            
             y = [ parse_label(line) for line in batch_list]
             batch_y= keras.utils.to_categorical(y,nbclass)
             
             ingres = [ parse_ingres(line) for line in batch_list]
-            batch_ingres= np.concatenate([array for array in ingres])            
-            yield batch_x,batch_ingres,batch_y
+            batch_ingres= np.concatenate([array for array in ingres])  
+            if(mode=="train"):
+                a = image_gen.flow(batch_x,batch_y,batch_size = batch_x.shape[0],shuffle=False)
+                x,y=next(a)
+                yield x,[batch_ingres,y]
+            else:
+                a = valid_gen.flow(batch_x,batch_y,batch_size = batch_x.shape[0],shuffle=False)
+                x,y=next(a)
+                #print("image after ---------------",x[0])
+                yield x,[batch_ingres,y]
+
 
 
 def create_aug_gen(in_gen,mode):
@@ -145,9 +153,9 @@ image_gen=ImageDataGenerator(rescale=1./255,
 
 valid_gen=ImageDataGenerator(rescale=1./255)
 
-train_gen =create_aug_gen(my_gen(train_path,173, batch_size, target_size),"train")
+train_gen =my_gen(train_path,173, batch_size, target_size,"train")
 
-val_gen=create_aug_gen(my_gen(val_path,173, batch_size, target_size),"val")
+val_gen=my_gen(val_path,173, batch_size, target_size,"val")
 
 model_path="model.h5"
 
@@ -169,7 +177,7 @@ if args.reload==0:
 else:
     model=keras.models.load_model("model.h5")
 
-model.fit_generator(generator=train_gen, steps_per_epoch=50, epochs=args.epoch, verbose=1,validation_data=val_gen,validation_steps=5,use_multiprocessing=False, workers=1)
+model.fit_generator(generator=train_gen, steps_per_epoch=50, epochs=args.epoch, verbose=1,validation_data=val_gen,validation_steps=5,use_multiprocessing=False, workers=0)
 #model.fit_generator(generator=train_gen, steps_per_epoch=1, epochs=args.epoch, verbose=1,validation_data=val_gen,validation_steps=1,use_multiprocessing=True, workers=1)
 
 model.save(model_path)
