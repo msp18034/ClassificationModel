@@ -56,6 +56,41 @@ def parse_ingres(line):
     ingre=np.fromstring(ingre, dtype=int, sep=' ')
     return np.expand_dims(ingre, axis=0)
 
+def read_val():
+    f = open("val.txt",'r')
+    images=[]
+    ingres=[]
+    classes=[]
+    count=0
+    for line in f:
+        path,ingre=line.split(" ",1)
+        classname=path.split("/")[1]
+        ingre=np.fromstring(ingre, dtype=int, sep=' ')
+        #print("/home/student/VireoFood172"+path)
+        try:
+            image=cv2.imread("/home/student/VireoFood172"+path)
+            image = cv2.resize(image, (256, 256))/255
+            count+=1
+            images.append(image)
+            ingres.append(ingre)
+            classes.append(classname)
+            if count%500==0:
+                print(count,"images readed")
+        except Exception as e:
+            pass
+        if count%1000==0:
+            break
+    images=np.array(images)
+    classes=np.array(classes)
+    y_train = keras.utils.to_categorical(classes,8)
+    ingres=np.array(ingres)
+    print(y_train.shape)
+    print(ingres.shape)
+    return images,[ingres,y_train]
+
+
+
+
 def create_model(ing_num,classes):
     # create the base pre-trained model
     base_model = InceptionV3(weights='imagenet', include_top=False)

@@ -14,11 +14,15 @@ import math
 from PIL import Image
 from keras.preprocessing.image import ImageDataGenerator
 import pandas as pd
+import pickle
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--epoch', type=int,
                     help='set input ecpoch')
 parser.add_argument('--reload', type=int,
                     help='set input ecpoch')
+parser.add_argument('--train', type=int,
+                    help='set input ecpoch')
+
 
 args = parser.parse_args()
 
@@ -31,6 +35,17 @@ def read_img(path, target_size):
         print(e)
     else:
         x = np.expand_dims(np.array(img_rs), axis=0)
+        return x
+
+def read_val_img(path, target_size):
+    try:
+        img = Image.open(path).convert("RGB")
+        img_rs = img.resize(target_size)
+#        img_rs = img_rs*1.0/255
+    except Exception as e:
+        print(e)
+    else:
+        x =np.array(img_rs)
         return x
 
 def getList(path):
@@ -89,8 +104,8 @@ def create_model(ing_num,classes):
 
 def my_gen(path,nbclass, batch_size, target_size,mode):
     img_list =getList(path)
-    steps=1
-   # steps = math.ceil(len(img_list) / batch_size)
+#    steps=1
+    steps = math.ceil(len(img_list) / batch_size)
     print("Found %s images."%len(img_list))
     while True:
         for i in range(steps):
@@ -114,6 +129,37 @@ def my_gen(path,nbclass, batch_size, target_size,mode):
                 #print("image after ---------------",x[0])
                 yield x,[batch_ingres,y]
 
+def read_val():
+    f = open("val.txt",'r')
+    images=[]
+    ingres=[]
+    classes=[]
+    count=0
+    for line in f:
+        path,ingre=line.split(" ",1)
+        classname=path.split("/")[1]
+        ingre=np.fromstring(ingre, dtype=int, sep=' ')
+        #print("/home/student/VireoFood172"+path)
+        try:
+            image=read_val_img("VireoFood172"+path,(256,256))
+            image=image*1.0/255
+            count+=1
+            images.append(image)
+            ingres.append(ingre)
+            classes.append(classname)
+            if count%500==0:
+                print(count,"images readed")
+        except Exception as e:
+            pass
+        if count%1000==0:
+            break
+    images=np.array(images)
+    classes=np.array(classes)
+    y_train = keras.utils.to_categorical(classes,173)
+    ingres=np.array(ingres)
+    print(y_train.shape)
+    print(ingres.shape)
+    return images,[ingres,y_train]
 
 
 def create_aug_gen(in_gen,mode):
@@ -177,9 +223,14 @@ if args.reload==0:
 else:
     model=keras.models.load_model("model.h5")
 
-history=model.fit_generator(generator=train_gen, steps_per_epoch=steps, epochs=args.epoch, verbose=1,validation_data=val_gen,validation_steps=50,use_multiprocessing=True, workers=1)
-#model.fit_generator(generator=train_gen, steps_per_epoch=1, epochs=args.epoch, verbose=1,validation_data=val_gen,validation_steps=1,use_multiprocessing=True, workers=1)
-with open('trainHistoryDict', 'wb') as file_pi:
-    pickle.dump(history.history, file_pi)
+if args.train==1: 
+    history=model.fit_generator(generator=train_gen, steps_per_epoch=steps, epochs=args.epoch,validation_data=read_val(), verbose=1,use_multiprocessing=True, workers=1)
+    model.save(model_path)
 
-model.save(model_path)
+    with open('trainHistoryDict2', 'wb') as file_pi:
+        pickle.dump(history.history, file_pi)
+
+else:
+    model.evaluate_generator(val_gen,steps=50,verbose=1)
+
+
