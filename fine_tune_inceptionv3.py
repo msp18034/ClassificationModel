@@ -1,4 +1,3 @@
-import cv2
 from keras.applications.inception_v3 import InceptionV3
 from keras.layers import Input
 from keras.optimizers import SGD
@@ -19,9 +18,11 @@ parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--epoch', type=int,
                     help='set input ecpoch')
 parser.add_argument('--reload', type=int,
-                    help='set input ecpoch')
+                    help='reload or train from 0')
 parser.add_argument('--train', type=int,
-                    help='set input ecpoch')
+                    help='train 1,evaluate 0 or whatever')
+parser.add_argument('--model', type=str,
+                    help='model path')
 
 
 args = parser.parse_args()
@@ -41,7 +42,7 @@ def read_val_img(path, target_size):
     try:
         img = Image.open(path).convert("RGB")
         img_rs = img.resize(target_size)
-#        img_rs = img_rs*1.0/255
+#       img_rs = img_rs*1.0/255
     except Exception as e:
         print(e)
     else:
@@ -90,7 +91,7 @@ def create_model(ing_num,classes):
     ingredients = Dense(ing_num, activation='sigmoid', name="ingredients")(ingredients)
 
     #merged_vector = keras.layers.concatenate([x, ingredients], axis=-1)
-    predictions = Dense(1024, activation='relu', name="fc3")(x)
+    predictions = Dense(4096, activation='relu', name="fc3")(x)
     predictions = Dropout(0.5)(predictions)
     predictions = Dense(classes, activation='softmax', name="predictions")(predictions)
 
@@ -104,7 +105,7 @@ def create_model(ing_num,classes):
 
 def my_gen(path,nbclass, batch_size, target_size,mode):
     img_list =getList(path)
-#    steps=1
+    #steps=500
     steps = math.ceil(len(img_list) / batch_size)
     print("Found %s images."%len(img_list))
     while True:
@@ -124,10 +125,11 @@ def my_gen(path,nbclass, batch_size, target_size,mode):
                 x,y=next(a)
                 yield x,[batch_ingres,y]
             else:
-                a = valid_gen.flow(batch_x,batch_y,batch_size = batch_x.shape[0],shuffle=False)
-                x,y=next(a)
+              #  a = valid_gen.flow(batch_x,batch_y,batch_size = batch_x.shape[0],shuffle=False)
+               # x,y=next(a)
                 #print("image after ---------------",x[0])
-                yield x,[batch_ingres,y]
+                batch_x=batch_x*1.0/255
+                yield batch_x,[batch_ingres,batch_y]
 
 def read_val():
     f = open("val.txt",'r')
@@ -161,28 +163,9 @@ def read_val():
     print(ingres.shape)
     return images,[ingres,y_train]
 
-
-def create_aug_gen(in_gen,mode):
-    if(mode=="train"):
-        for in_x,batch_ingres,in_y in in_gen:
-            #print("image before---------------",in_x[0])
-            a = image_gen.flow(in_x,in_y,batch_size = in_x.shape[0],shuffle=False) 
-            x,y=next(a)
-            #print("image after ---------------",x[0])
-            yield x,[batch_ingres,y]
-    else:
-        for in_x,batch_ingres,in_y in in_gen:
-            a = valid_gen.flow(in_x,in_y,batch_size = in_x.shape[0],shuffle=False)
-            x,y=next(a)
-            #print("image after ---------------",x[0])
-            yield x,[batch_ingres,y]
-
-
-
-
 train_path="train.txt"
 val_path="val.txt"
-batch_size=128
+batch_size=64
 nbclass=173
 steps=math.ceil(len(getList(train_path)) / batch_size)
 val_steps=math.ceil(len(getList(val_path)) / batch_size)
@@ -203,10 +186,10 @@ train_gen =my_gen(train_path,173, batch_size, target_size,"train")
 
 val_gen=my_gen(val_path,173, batch_size, target_size,"val")
 
-model_path="model.h5"
+model_path=args.model
 
 if args.reload==0:
-    model_path="model.h5"
+    #odel_path="model.h5"
     model=create_model(353,nbclass)
     model.compile(
             loss={
@@ -214,20 +197,21 @@ if args.reload==0:
                 'predictions': 'categorical_crossentropy'
                   },
             loss_weights={
-                'ingredients': 1.,
-                'predictions': 2.
+                'ingredients': 0.1,
+                'predictions': 1.0
                 },
-            optimizer='adam',
-            #ptimizer=SGD(lr=1e-4, decay=1e-6, momentum=0.9, nesterov=True),
-            metrics=['accuracy'])
+            #optimizer='adam',
+            optimizer=SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True),
+
+            metrics=['accuracy','top_k_categorical_accuracy'])
 else:
-    model=keras.models.load_model("model.h5")
+    model=keras.models.load_model(model_path)
 
 if args.train==1: 
-    history=model.fit_generator(generator=train_gen, steps_per_epoch=steps, epochs=args.epoch,validation_data=read_val(), verbose=1,use_multiprocessing=True, workers=1)
+    history=model.fit_generator(generator=train_gen, steps_per_epoch=200, epochs=args.epoch,validation_data=val_gen,validation_steps=50, verbose=1,use_multiprocessing=True, workers=1)
     model.save(model_path)
 
-    with open('trainHistoryDict2', 'wb') as file_pi:
+    with open('augmentMultitask', 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
 
 else:
