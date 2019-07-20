@@ -172,8 +172,8 @@ train_path="train.txt"
 val_path="val.txt"
 batch_size=64
 nbclass=173
-steps=math.ceil(len(getList(train_path)) / batch_size)
-val_steps=math.ceil(len(getList(val_path)) / batch_size)
+steps=math.ceil(len(getList(train_path)) / batch_size/2)
+val_steps=math.ceil(len(getList(val_path)) / batch_size/2)
 target_size = (256,256)
 
 image_gen=ImageDataGenerator(rescale=1./255,
@@ -203,20 +203,20 @@ if args.reload==0:
                   },
             loss_weights={
                 'ingredients': 0.1,
-                'predictions': 1.0
+                'predictions': 0.9
                 },
             #optimizer='adam',
-            optimizer=SGD(lr=1e-2, decay=1e-6, momentum=0.9, nesterov=True),
+            optimizer=SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True),
 
             metrics=['accuracy','top_k_categorical_accuracy'])
 else:
     model=keras.models.load_model(model_path)
 
 if args.train==1: 
-    history=model.fit_generator(generator=train_gen, steps_per_epoch=200, epochs=args.epoch,validation_data=val_gen,validation_steps=50, verbose=1,use_multiprocessing=True, workers=1)
+    history=model.fit_generator(generator=train_gen, steps_per_epoch=steps, epochs=args.epoch,validation_data=val_gen,validation_steps=val_steps, verbose=1,use_multiprocessing=True, workers=1)
     model.save(model_path)
 
-    with open('augmentMultitask', 'wb') as file_pi:
+    with open('lr001'+str(args.epoch), 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
 
 else:
