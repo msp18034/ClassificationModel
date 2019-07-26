@@ -83,8 +83,8 @@ def create_model(ing_num,classes):
     # create the base pre-trained model
     #base_model = InceptionV3(weights='imagenet', include_top=False)
     Inp = Input((256, 256, 3))
-    base_model = ResNet50(weights='imagenet', include_top=False,
-                              input_shape=(256, 256, 3), )
+#    base_model = ResNet50(weights='imagenet', include_top=False,                         input_shape=(256, 256, 3), )
+    base_model = InceptionV3(weights='imagenet', include_top=False)
     K.set_learning_phase(1)
     x = base_model(Inp)
     x = BatchNormalization(axis=-1, name='banNew')(x)
@@ -92,9 +92,9 @@ def create_model(ing_num,classes):
     #x = Flatten(name='flatten')(x)
     #x= Dense(4096, activation='relu', name="fc1")(x)
     #x = Dropout(0.5)(x)
-    cuisine = Dense(1024, activation='relu', name="fc2")(x)
-    cuisine = Dropout(0.5)(cuisine)
-    cuisine = Dense(13, activation='softmax', name="cuisine")(cuisine)
+    ingredients = Dense(1024, activation='relu', name="fc2")(x)
+    ingredients = Dropout(0.5)(ingredients)
+    ingredients = Dense(13, activation='softmax', name="ingredients")(ingredients)
 
     #merged_vector = keras.layers.concatenate([x, ingredients], axis=-1)
     predictions = Dense(4096, activation='relu', name="fc3")(x)
@@ -102,7 +102,7 @@ def create_model(ing_num,classes):
     predictions = Dense(classes, activation='softmax', name="predictions")(predictions)
 
     input_tensor = Input(shape=(400, 400, 3))  # this assumes K.image_data_format() == 'channels_last'
-    model = Model(input=Inp, output=[cuisine, predictions])       
+    model = Model(input=Inp, output=[ingredients, predictions])       
  #  model = Model(input=base_model.input, output=predictions)
     for layer in base_model.layers:
         layer.trainable = False
@@ -201,11 +201,11 @@ if args.reload==0:
     model=create_model(353,nbclass)
     model.compile(
             loss={
-                'cuisine': 'categorical_crossentropy',
+                'ingredients': 'categorical_crossentropy',
                 'predictions': 'categorical_crossentropy'
                   },
             loss_weights={
-                'cuisine': 0.1,
+                'ingredients': 0.1,
                 'predictions': 0.9
                 },
             #optimizer='adam',

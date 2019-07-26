@@ -82,9 +82,10 @@ def parse_ingres(line):
 def create_model(ing_num,classes):
     # create the base pre-trained model
     #base_model = InceptionV3(weights='imagenet', include_top=False)
-    Inp = Input((256, 256, 3))
-    base_model = ResNet50(weights='imagenet', include_top=False,
-                              input_shape=(256, 256, 3), )
+    Inp = Input((224, 224, 3))
+    #base_model = ResNet50(weights='imagenet', include_top=False,                         input_shape=(256, 256, 3), )
+    base_model=keras.applications.mobilenet_v2.MobileNetV2(weights='imagenet', include_top=False )
+
     K.set_learning_phase(1)
     x = base_model(Inp)
     x = BatchNormalization(axis=-1, name='banNew')(x)
@@ -177,7 +178,7 @@ batch_size=64
 nbclass=173
 steps=math.ceil(len(getList(train_path)) / batch_size/2)
 val_steps=math.ceil(len(getList(val_path)) / batch_size/2)
-target_size = (256,256)
+target_size = (224,224)
 
 image_gen=ImageDataGenerator(rescale=1./255,
     rotation_range=40,
