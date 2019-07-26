@@ -220,7 +220,7 @@ if args.train==1:
     history=model.fit_generator(generator=train_gen, steps_per_epoch=200, epochs=args.epoch,validation_data=val_gen,validation_steps=100, verbose=1,use_multiprocessing=True, workers=1)
     model.save(model_path)
 
-    with open('cuisie722_'+str(args.epoch), 'wb') as file_pi:
+    with open(args.model+str(args.epoch), 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
 
 else:
