@@ -232,5 +232,7 @@ else:
     #print('---------',history.history)
     print("cuisine acc",history[3])
     print("dish acc",history[5])
+    print("cuisine acc 5",history[4])
+    print("dish acc 5",history[6])
 
 
