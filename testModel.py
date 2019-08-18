@@ -62,7 +62,7 @@ def parse_path(line):
     '''
     Given a line from the training/test txt file, return parsed info.'''
     path,ingre=line.split(" ",1)
-    return "VireoFood172"+path
+    return "testModel.py"+path
 
 def parse_label(line):
     '''
@@ -101,8 +101,7 @@ def create_model(ing_num,classes):
     predictions = Dropout(0.5)(predictions)
     predictions = Dense(classes, activation='softmax', name="predictions")(predictions)
 
-    input_tensor = Input(shape=(400, 400, 3))  # this assumes K.image_data_format() == 'channels_last'
-    model = Model(input=Inp, output=[cuisine, predictions])       
+    model = Model(input=Inp, output=[cuisine, predictions])
  #  model = Model(input=base_model.input, output=predictions)
     for layer in base_model.layers:
         layer.trainable = False

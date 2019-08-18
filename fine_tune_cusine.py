@@ -13,7 +13,6 @@ import argparse
 import math
 from PIL import Image
 from keras.preprocessing.image import ImageDataGenerator
-import pandas as pd
 import pickle
 
 parser = argparse.ArgumentParser(description='Process some integers.')
@@ -225,9 +224,8 @@ if args.train == 1:
 
 else: # Evaluate
     history = model.evaluate_generator(test_gen, steps=test_steps, verbose=1)
-    print(history[3])
-    print(history[4])
-    print(history[5])
-    print(history[6])
-
+    print("Cuisine top-1 acc",history[3])
+    print("Dish top-1 acc",history[5])
+    print("Cuisine top-5 acc",history[4])
+    print("Dish top-5 acc" ,history[6])
 
