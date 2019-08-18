@@ -1,4 +1,3 @@
-from keras.applications.inception_v3 import InceptionV3
 from keras.applications.resnet50 import ResNet50
 from keras.layers import Input
 from keras.optimizers import SGD
@@ -15,15 +14,20 @@ from PIL import Image
 from keras.preprocessing.image import ImageDataGenerator
 import pandas as pd
 import pickle
+
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--epoch', type=int,
                     help='set input ecpoch')
+parser.add_argument('--baseModel', type=int,
+                    help='mobile,inceptionV3 or Resnet50')
+
 parser.add_argument('--reload', type=int,
                     help='reload or train from 0')
 parser.add_argument('--train', type=int,
                     help='train 1,evaluate 0 or whatever')
+
 parser.add_argument('--model', type=str,
-                    help='model path')
+                    help='model path to save or reload')
 
 
 args = parser.parse_args()
@@ -82,27 +86,28 @@ def create_model(ing_num,classes):
     # create the base pre-trained model
     #base_model = InceptionV3(weights='imagenet', include_top=False)
     Inp = Input((256, 256, 3))
-    base_model = ResNet50(weights='imagenet', include_top=False,
+    if args.baseModel=="inceptionV3":
+        base_model = InceptionV3(weights='imagenet', include_top=False)
+    elif args.baseModel=="resnet50":
+        base_model = ResNet50(weights='imagenet', include_top=False,
                               input_shape=(256, 256, 3), )
+    elif args.baseModel=="mobilenet":
+        base_model = keras.applications.mobilenet_v2.MobileNetV2(weights='imagenet', include_top=False)
+
     K.set_learning_phase(1)
     x = base_model(Inp)
     x = BatchNormalization(axis=-1, name='banNew')(x)
     x = GlobalAveragePooling2D(name='average_pool')(x)
-    #x = Flatten(name='flatten')(x)
-    #x= Dense(4096, activation='relu', name="fc1")(x)
-    #x = Dropout(0.5)(x)
+
     ingredients = Dense(1024, activation='relu', name="fc2")(x)
     ingredients = Dropout(0.5)(ingredients)
     ingredients = Dense(ing_num, activation='sigmoid', name="ingredients")(ingredients)
 
-    #merged_vector = keras.layers.concatenate([x, ingredients], axis=-1)
     predictions = Dense(4096, activation='relu', name="fc3")(x)
     predictions = Dropout(0.5)(predictions)
     predictions = Dense(classes, activation='softmax', name="predictions")(predictions)
 
-    input_tensor = Input(shape=(400, 400, 3))  # this assumes K.image_data_format() == 'channels_last'
-    model = Model(input=Inp, output=[ingredients, predictions])       
- #  model = Model(input=base_model.input, output=predictions)
+    model = Model(input=Inp, output=[ingredients, predictions])
     for layer in base_model.layers:
         layer.trainable = False
     return model
@@ -136,44 +141,15 @@ def my_gen(path,nbclass, batch_size, target_size,mode):
                 batch_x=batch_x*1.0/255
                 yield batch_x,[batch_ingres,batch_y]
 
-def read_val():
-    f = open("val.txt",'r')
-    images=[]
-    ingres=[]
-    classes=[]
-    count=0
-    for line in f:
-        path,ingre=line.split(" ",1)
-        classname=path.split("/")[1]
-        ingre=np.fromstring(ingre, dtype=int, sep=' ')
-        #print("/home/student/VireoFood172"+path)
-        try:
-            image=read_val_img("VireoFood172"+path,(256,256))
-            image=image*1.0/255
-            count+=1
-            images.append(image)
-            ingres.append(ingre)
-            classes.append(classname)
-            if count%500==0:
-                print(count,"images readed")
-        except Exception as e:
-            pass
-        if count%1000==0:
-            break
-    images=np.array(images)
-    classes=np.array(classes)
-    y_train = keras.utils.to_categorical(classes,173)
-    ingres=np.array(ingres)
-    print(y_train.shape)
-    print(ingres.shape)
-    return images,[ingres,y_train]
+train_path = "train.txt"
+val_path = "val.txt"
+test_path = 'test.txt'
+batch_size = 64
+nbclass = 173
+steps = math.ceil(len(getList(train_path)) / batch_size)
+val_steps = math.ceil(len(getList(val_path)) / batch_size)
+test_steps = math.ceil(len(getList(test_path)) / batch_size)
 
-train_path="train.txt"
-val_path="val.txt"
-batch_size=64
-nbclass=173
-steps=math.ceil(len(getList(train_path)) / batch_size/2)
-val_steps=math.ceil(len(getList(val_path)) / batch_size/2)
 target_size = (256,256)
 
 image_gen=ImageDataGenerator(rescale=1./255,
@@ -185,11 +161,9 @@ image_gen=ImageDataGenerator(rescale=1./255,
     horizontal_flip=True,
     fill_mode='nearest')
 
-valid_gen=ImageDataGenerator(rescale=1./255)
-
 train_gen =my_gen(train_path,173, batch_size, target_size,"train")
-
 val_gen=my_gen(val_path,173, batch_size, target_size,"val")
+test_gen = my_gen(test_path, 173, batch_size, target_size, "val")
 
 model_path=args.model
 
@@ -219,7 +193,14 @@ if args.train==1:
     with open('lr001'+str(args.epoch), 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
 
-else:
-    model.evaluate_generator(val_gen,steps=50,verbose=1)
+
+else: # Evaluate
+    history = model.evaluate_generator(test_gen, steps=test_steps, verbose=1)
+    print(history[3])
+    print(history[4])
+    print(history[5])
+    print(history[6])
+
+
 
 
