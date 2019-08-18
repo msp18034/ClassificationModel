@@ -25,4 +25,11 @@ Test
 ```
 python ClassificationModel/singleRes50.py --reload 1 --train 0 --model singleRes50.h5
 ```
-
+## Help:
+```
+--epoch          number of epoches to train the model
+--baseModel      mobilenet,inceptionV3 or resnet50. base model as feature extractor
+--reload         0,1. 0: train from scratch; 1: train based on previous trained model or load model for evaluation
+--train          0,1. 0: evaluate;1: train
+--model          string,model path to save trained model or to reload for evaluation
+```
