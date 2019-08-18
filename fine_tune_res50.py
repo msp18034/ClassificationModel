@@ -18,7 +18,7 @@ import pickle
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--epoch', type=int,
                     help='set input ecpoch')
-parser.add_argument('--baseModel', type=int,
+parser.add_argument('--baseModel', type=str,
                     help='mobile,inceptionV3 or Resnet50')
 
 parser.add_argument('--reload', type=int,
