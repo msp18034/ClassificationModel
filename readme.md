@@ -1,6 +1,6 @@
 ## Dataset VireoFood172
-Download [Here](http://vireo.cs.cityu.edu.hk/VireoFood172/)
-Folder structure
+Download [Here](http://vireo.cs.cityu.edu.hk/VireoFood172/)<br>
+Folder structure:<br>
 -VireoFood172<br>
 -ClassificationModel<br>
 
