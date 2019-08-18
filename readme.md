@@ -1,3 +1,9 @@
+## Dataset VireoFood172
+Download [Here](http://vireo.cs.cityu.edu.hk/VireoFood172/)
+Folder structure
+-VireoFood172<br>
+-ClassificationModel<br>
+
 ## Multi-task DCNN using cuisne method classification as auxiliary task
 Train
 ```
