@@ -62,7 +62,7 @@ def parse_path(line):
     '''
     Given a line from the training/test txt file, return parsed info.'''
     path,ingre=line.split(" ",1)
-    return "VireoFood172"+path
+    return "ready_chinese_food"+path
 
 def parse_label(line):
     '''
@@ -82,10 +82,9 @@ def parse_ingres(line):
 def create_model(ing_num,classes):
     # create the base pre-trained model
     #base_model = InceptionV3(weights='imagenet', include_top=False)
-    Inp = Input((224, 224, 3))
-    #base_model = ResNet50(weights='imagenet', include_top=False,                         input_shape=(256, 256, 3), )
-    base_model=keras.applications.mobilenet_v2.MobileNetV2(weights='imagenet', include_top=False )
-
+    Inp = Input((256, 256, 3))
+    base_model = ResNet50(weights='imagenet', include_top=False,
+                              input_shape=(256, 256, 3), )
     K.set_learning_phase(1)
     x = base_model(Inp)
     x = BatchNormalization(axis=-1, name='banNew')(x)
@@ -140,47 +139,16 @@ def my_gen(path,nbclass, batch_size, target_size,mode):
                 batch_x=batch_x*1.0/255
                 yield batch_x,[batch_c,batch_y]
 
-def read_val():
-    f = open("val.txt",'r')
-    images=[]
-    ingres=[]
-    classes=[]
-    count=0
-    for line in f:
-        path,ingre=line.split(" ",1)
-        classname=path.split("/")[1]
-        ingre=np.fromstring(ingre, dtype=int, sep=' ')
-        #print("/home/student/VireoFood172"+path)
-        try:
-            image=read_val_img("VireoFood172"+path,(256,256))
-            image=image*1.0/255
-            count+=1
-            images.append(image)
-            ingres.append(ingre)
-            classes.append(classname)
-            if count%500==0:
-                print(count,"images readed")
-        except Exception as e:
-            pass
-        if count%1000==0:
-            break
-    images=np.array(images)
-    classes=np.array(classes)
-    y_train = keras.utils.to_categorical(classes,173)
-    ingres=np.array(ingres)
-    print(y_train.shape)
-    print(ingres.shape)
-    return images,[ingres,y_train]
-
 train_path="train.txt"
 val_path="val.txt"
-test_path='test.txt'
+test_path="test.txt"
 batch_size=64
 nbclass=173
 steps=math.ceil(len(getList(train_path)) / batch_size/2)
 val_steps=math.ceil(len(getList(val_path)) / batch_size/2)
 test_steps=math.ceil(len(getList(test_path)) / batch_size/2)
-target_size = (224,224)
+
+target_size = (256,256)
 
 image_gen=ImageDataGenerator(rescale=1./255,
     rotation_range=40,
@@ -196,6 +164,7 @@ valid_gen=ImageDataGenerator(rescale=1./255)
 train_gen =my_gen(train_path,173, batch_size, target_size,"train")
 
 val_gen=my_gen(val_path,173, batch_size, target_size,"val")
+
 test_gen=my_gen(test_path,173, batch_size, target_size,"val")
 
 model_path=args.model
@@ -223,15 +192,15 @@ if args.train==1:
     history=model.fit_generator(generator=train_gen, steps_per_epoch=200, epochs=args.epoch,validation_data=val_gen,validation_steps=100, verbose=1,use_multiprocessing=True, workers=1)
     model.save(model_path)
 
-    with open(args.model+str(args.epoch), 'wb') as file_pi:
+    with open('cuisie726_'+str(args.epoch), 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
 
 else:
     history=model.evaluate_generator(test_gen,steps=test_steps,verbose=1)
-    print(history[3])
-    print(history[4])
-
-    print(history[5])
-    print(history[6])
+    #print('---------',history.history)
+    print("cuisine acc",history[3])
+    print("dish acc",history[5])
+    print("cuisine acc 5",history[4])
+    print("dish acc 5",history[6])
 
 
