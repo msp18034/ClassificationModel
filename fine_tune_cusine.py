@@ -102,7 +102,7 @@ def parse_ingres(line):
     return np.expand_dims(ingre, axis=0)
 
 
-def create_model(ing_num, classes):
+def create_model(nb_cusine,classes):
     # create the base pre-trained model
     # base_model = InceptionV3(weights='imagenet', include_top=False)
     Inp = Input((256, 256, 3))
@@ -122,18 +122,16 @@ def create_model(ing_num, classes):
     # x = Flatten(name='flatten')(x)
     # x= Dense(4096, activation='relu', name="fc1")(x)
     # x = Dropout(0.5)(x)
-    ingredients = Dense(1024, activation='relu', name="fc2")(x)
-    ingredients = Dropout(0.5)(ingredients)
-    ingredients = Dense(13, activation='softmax', name="ingredients")(ingredients)
+    cuisine = Dense(1024, activation='relu', name="fc2")(x)
+    cuisine = Dropout(0.5)(cuisine)
+    cuisine = Dense(nb_cusine, activation='softmax', name="cuisine")(cuisine)
 
     # merged_vector = keras.layers.concatenate([x, ingredients], axis=-1)
     predictions = Dense(4096, activation='relu', name="fc3")(x)
     predictions = Dropout(0.5)(predictions)
     predictions = Dense(classes, activation='softmax', name="predictions")(predictions)
 
-    input_tensor = Input(shape=(400, 400, 3))  # this assumes K.image_data_format() == 'channels_last'
-    model = Model(input=Inp, output=[ingredients, predictions])
-    #  model = Model(input=base_model.input, output=predictions)
+    model = Model(input=Inp, output=[cuisine, predictions])
     for layer in base_model.layers:
         layer.trainable = False
     return model
@@ -197,17 +195,17 @@ val_gen = my_gen(val_path, 173, batch_size, target_size, "val")
 test_gen = my_gen(test_path, 173, batch_size, target_size, "val")
 
 model_path = args.model
-
+# Train from scratch or
 if args.reload == 0:
     # odel_path="model.h5"
-    model = create_model(353, nbclass)
+    model = create_model(13, nbclass)
     model.compile(
         loss={
-            'ingredients': 'categorical_crossentropy',
+            'cuisine': 'categorical_crossentropy',
             'predictions': 'categorical_crossentropy'
         },
         loss_weights={
-            'ingredients': 0.1,
+            'cuisine': 0.1,
             'predictions': 0.9
         },
         # optimizer='adam',
@@ -225,7 +223,7 @@ if args.train == 1:
     with open(args.model + str(args.epoch), 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
 
-else:
+else: # Evaluate
     history = model.evaluate_generator(test_gen, steps=test_steps, verbose=1)
     print(history[3])
     print(history[4])
