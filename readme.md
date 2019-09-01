@@ -62,5 +62,5 @@ python ClassificationModel/singleRes50.py --reload 1 --train 0 --model singleRes
 
 ### Model Evaluation
 
-![Evaluation](https://github.com/msp18034/ClassificationModel/blob/master/images/eva.png)
+![Evaluation](https://github.com/msp18034/ClassificationModel/blob/master/images/Eva.png)
 
