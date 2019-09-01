@@ -8,13 +8,13 @@ Download [Here](http://vireo.cs.cityu.edu.hk/VireoFood172/)<br>
 
 ### Label Cooking method Examples
 
-![label](images\cuisine.png)
+![label](https://github.com/msp18034/ClassificationModel/blob/master/images\cuisine.png)
 
 
 
 ### Multi-Task DCNN Architecture
 
-![Arch](images\multi-task.png)
+![Arch](https://github.com/msp18034/ClassificationModel/blob/master/images\multi-task.png)
 
 ### Train and evaluate command
 
@@ -62,5 +62,5 @@ python ClassificationModel/singleRes50.py --reload 1 --train 0 --model singleRes
 
 ### Model Evaluation
 
-![Evaluation](images\eva.png)
+![Evaluation](https://github.com/msp18034/ClassificationModel/blob/master/images\eva.png)
 
