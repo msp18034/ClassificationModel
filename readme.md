@@ -1,6 +1,6 @@
 ### Dataset VireoFood172
 
-![avatar](images\sample.png)
+![avatar](https://github.com/msp18034/ClassificationModel/blob/master/images/sample.png)
 
 Download [Here](http://vireo.cs.cityu.edu.hk/VireoFood172/)<br>
 
