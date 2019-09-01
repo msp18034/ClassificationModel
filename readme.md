@@ -14,7 +14,7 @@ Download [Here](http://vireo.cs.cityu.edu.hk/VireoFood172/)<br>
 
 ### Multi-Task DCNN Architecture
 
-![Arch](https://github.com/msp18034/ClassificationModel/blob/master/images\multi-task.png)
+![Arch](https://github.com/msp18034/ClassificationModel/blob/master/images/multi-task.png)
 
 ### Train and evaluate command
 
@@ -62,5 +62,5 @@ python ClassificationModel/singleRes50.py --reload 1 --train 0 --model singleRes
 
 ### Model Evaluation
 
-![Evaluation](https://github.com/msp18034/ClassificationModel/blob/master/images\eva.png)
+![Evaluation](images/eva.png)
 
